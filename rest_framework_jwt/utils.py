@@ -1,7 +1,10 @@
+import json
+
 import jwt
 import uuid
 import warnings
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from calendar import timegm
@@ -86,22 +89,18 @@ def jwt_get_username_from_payload_handler(payload):
 
 
 def jwt_encode_handler(payload):
-    key = api_settings.JWT_PRIVATE_KEY or jwt_get_secret_key(payload)
+    key = settings.SECRET_KEY
     return jwt.encode(payload, key, api_settings.JWT_ALGORITHM)
 
 
 def jwt_decode_handler(token):
-    options = {
-        "verify_exp": api_settings.JWT_VERIFY_EXPIRATION,
-    }
-    # get user from token, BEFORE verification, to get user secret key
-    unverified_payload = jwt.decode(token, None, False)
-    secret_key = jwt_get_secret_key(unverified_payload)
     return jwt.decode(
         token,
-        api_settings.JWT_PUBLIC_KEY or secret_key,
-        api_settings.JWT_VERIFY,
-        options=options,
+        key=settings.SECRET_KEY,
+        options={
+            "verify_exp": api_settings.JWT_VERIFY_EXPIRATION,
+            "verify_signature": api_settings.JWT_VERIFY,
+        },
         leeway=api_settings.JWT_LEEWAY,
         audience=api_settings.JWT_AUDIENCE,
         issuer=api_settings.JWT_ISSUER,
